@@ -167,3 +167,34 @@ export function estimatedIncrementalBookings(
   if (avgBookingValue <= 0) return 0;
   return Math.round(Math.abs(monthlyRevenueImpact) / avgBookingValue);
 }
+
+const ZERO_ADJUSTMENTS: MetricAdjustments = {
+  trafficChange: 0,
+  conversionRateChange: 0,
+  acceptanceRateChange: 0,
+  retentionRateChange: 0,
+  repeatBookingsChange: 0,
+};
+
+/**
+ * "Existing Business" — a market's monthly net-new booking revenue with
+ * zero project adjustments, in the market's native currency.
+ *
+ * This is NOT an invented number: it is exactly `calculateGrowthImpact`'s
+ * `current.monthlyRevenue`, i.e. the same baseline every project's
+ * `difference.revenue` is already computed against
+ * (`difference.revenue === projected.monthlyRevenue − current.monthlyRevenue`,
+ * an algebraic identity — see growthModel/launchTiming docs). Reusing this
+ * function (rather than a parallel formula) guarantees the Portfolio
+ * Forecast's baseline and every project's incremental impact can never
+ * drift out of sync with each other.
+ *
+ * Deliberately NOT `activeBookings * avgBookingValue` (a stock/inventory
+ * value, not a monthly flow) or `confirmedBookings * avgBookingValue`
+ * ungated by churn (a different, incompatible basis than the one project
+ * deltas are measured against) — see the Portfolio Forecast baseline
+ * writeup for why those were rejected.
+ */
+export function existingBusinessMonthlyRevenue(baseline: MarketBaseline): number {
+  return calculateGrowthImpact(baseline, ZERO_ADJUSTMENTS).current.monthlyRevenue;
+}
