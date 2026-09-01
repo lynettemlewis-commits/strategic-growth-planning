@@ -27,6 +27,16 @@ export function subscribe(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+// `getAllProjects` is used as the `getSnapshot` for React's
+// `useSyncExternalStore` (see hooks/use-projects.ts). That hook requires
+// `getSnapshot` to return a REFERENCE-STABLE value when nothing has
+// changed — calling `JSON.parse` fresh on every read would return a new
+// array/object each time even when the underlying data is identical,
+// which makes React think the store changes on every render and throws
+// "Maximum update depth exceeded". This in-memory cache is what makes
+// that safe: it's only invalidated (recomputed) when we actually write.
+let cache: Project[] | null = null;
+
 function readRaw(): Project[] | null {
   const raw = sessionStorage.getItem(STORAGE_KEY);
   if (raw === null) return null; // never initialized this session
@@ -41,17 +51,20 @@ function readRaw(): Project[] | null {
 
 function writeRaw(projects: Project[]) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  cache = projects;
   notify();
 }
 
 /** Returns all projects (sample + user-created), seeding samples on first use this session. */
 export function getAllProjects(): Project[] {
+  if (cache !== null) return cache;
   const existing = readRaw();
   if (existing === null) {
     writeRaw(SAMPLE_PROJECTS);
     return SAMPLE_PROJECTS;
   }
-  return existing;
+  cache = existing;
+  return cache;
 }
 
 export function getProject(id: string): Project | undefined {
