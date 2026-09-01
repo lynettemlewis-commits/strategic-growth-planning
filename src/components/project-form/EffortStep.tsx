@@ -12,12 +12,23 @@ interface EffortStepProps {
   market: Market;
   effort: number;
   monthlyValue: number; // native currency, from the Business Impact step
+  /** When editing an existing project, its id — excluded from the preview matrix so its saved position doesn't duplicate the live draft. */
+  excludeProjectId?: string;
   onChange: (effort: number) => void;
   onBack: () => void;
   onNext: () => void;
 }
 
-export function EffortStep({ name, market, effort, monthlyValue, onChange, onBack, onNext }: EffortStepProps) {
+export function EffortStep({
+  name,
+  market,
+  effort,
+  monthlyValue,
+  excludeProjectId,
+  onChange,
+  onBack,
+  onNext,
+}: EffortStepProps) {
   const projects = useProjects();
   const [displayCurrency] = useDisplayCurrency();
 
@@ -55,7 +66,12 @@ export function EffortStep({ name, market, effort, monthlyValue, onChange, onBac
         </div>
       </div>
 
-      <EffortImpactMatrix projects={projects} displayCurrency={displayCurrency} draftPoint={draftPoint} />
+      <EffortImpactMatrix
+        projects={projects}
+        displayCurrency={displayCurrency}
+        draftPoint={draftPoint}
+        excludeProjectId={excludeProjectId}
+      />
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-2" data-testid="button-back-step3">

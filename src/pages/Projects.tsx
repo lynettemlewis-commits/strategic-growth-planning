@@ -5,7 +5,7 @@ import { FUNNEL_STAGE_LABEL } from "@/lib/funnelStages";
 import { MARKET_LABEL, MARKET_CURRENCY, formatCurrency } from "@/lib/currency";
 import { monthName } from "@/lib/calendar";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Projects() {
@@ -56,17 +56,29 @@ export default function Projects() {
                       ? monthName(p.launchMonth)
                       : `${p.iterations.length} phases from ${monthName(p.iterations[0]?.launchMonth ?? p.launchMonth)}`}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right whitespace-nowrap">
                     {!p.isSample && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => deleteProject(p.id)}
-                        data-testid={`button-delete-${p.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Link href={`/edit/${p.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-500 hover:text-gray-700"
+                            data-testid={`button-edit-${p.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => deleteProject(p.id)}
+                          data-testid={`button-delete-${p.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                   </td>
                 </tr>

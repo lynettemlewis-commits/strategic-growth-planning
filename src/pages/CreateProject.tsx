@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
 import { ProjectDetailsStep } from "@/components/project-form/ProjectDetailsStep";
 import { BusinessImpactStep } from "@/components/project-form/BusinessImpactStep";
 import { EffortStep } from "@/components/project-form/EffortStep";
@@ -7,8 +7,9 @@ import { LaunchStrategyStep } from "@/components/project-form/LaunchStrategyStep
 import { calculateGrowthImpact } from "@/lib/growthModel";
 import { MARKET_BASELINES } from "@/lib/marketBaselines";
 import { monthlyContributionSeries, totalPlanningPeriodValue } from "@/lib/launchTiming";
-import { addProject } from "@/lib/projectStore";
-import type { FunnelStage, Iteration, LaunchType, Market, MetricAdjustments } from "@/lib/types";
+import { addProject, updateProject } from "@/lib/projectStore";
+import { useProjects } from "@/hooks/use-projects";
+import type { FunnelStage, Iteration, LaunchType, Market, MetricAdjustments, Project } from "@/lib/types";
 
 const STEP_LABELS = ["Project Details", "Business Impact", "Estimated Effort", "Launch Strategy"];
 
@@ -23,6 +24,11 @@ interface DraftProject {
   launchMonth: number;
   iterations: Iteration[];
 }
+
+const defaultIterations: Iteration[] = [
+  { name: "Phase 1", launchMonth: 1, valuePercentage: 50 },
+  { name: "Phase 2", launchMonth: 4, valuePercentage: 50 },
+];
 
 const emptyDraft: DraftProject = {
   name: "",
@@ -39,16 +45,53 @@ const emptyDraft: DraftProject = {
   effort: 5,
   launchType: "single",
   launchMonth: 1,
-  iterations: [
-    { name: "Phase 1", launchMonth: 1, valuePercentage: 50 },
-    { name: "Phase 2", launchMonth: 4, valuePercentage: 50 },
-  ],
+  iterations: defaultIterations,
 };
+
+function draftFromProject(project: Project): DraftProject {
+  return {
+    name: project.name,
+    description: project.description,
+    funnel: project.funnel,
+    market: project.market,
+    adjustments: project.adjustments,
+    effort: project.effort,
+    launchType: project.launchType,
+    launchMonth: project.launchMonth,
+    // A project saved as "single" may have no iterations recorded — seed a
+    // sensible default in case the visitor switches to phased while editing.
+    iterations: project.iterations.length > 0 ? project.iterations : defaultIterations,
+  };
+}
 
 export default function CreateProject() {
   const [, setLocation] = useLocation();
+  const params = useParams<{ id?: string }>();
+  const editId = params.id;
+  const projects = useProjects();
+  const editingProject = editId ? projects.find((p) => p.id === editId) : undefined;
+  const isEditing = !!editId;
+
   const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState<DraftProject>(emptyDraft);
+  const [draft, setDraft] = useState<DraftProject>(() =>
+    editingProject ? draftFromProject(editingProject) : emptyDraft,
+  );
+
+  // Sample projects are protected — bounce straight back if someone lands
+  // on an edit URL for one (typed manually, or a stale link).
+  useEffect(() => {
+    if (editId && editingProject?.isSample) {
+      setLocation("/projects");
+    }
+  }, [editId, editingProject, setLocation]);
+
+  // If we navigate straight from one edit link to another (or into a fresh
+  // create), reset the draft to match.
+  useEffect(() => {
+    setDraft(editingProject ? draftFromProject(editingProject) : emptyDraft);
+    setStep(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   const monthlyValue = draft.funnel
     ? calculateGrowthImpact(MARKET_BASELINES[draft.market], draft.adjustments).difference.revenue
@@ -63,11 +106,11 @@ export default function CreateProject() {
     );
     const totalValue = totalPlanningPeriodValue(series);
 
-    addProject({
+    const fields = {
       name: draft.name || "Untitled Project",
       description: draft.description,
       successMetrics: "",
-      funnel: draft.funnel || "demand",
+      funnel: draft.funnel || ("demand" as FunnelStage),
       market: draft.market,
       effort: draft.effort,
       adjustments: draft.adjustments,
@@ -76,19 +119,39 @@ export default function CreateProject() {
       iterations: draft.launchType === "iterative" ? draft.iterations : [],
       monthlyValue: Math.round(Math.abs(monthlyValue)),
       totalValue: Math.round(totalValue),
-      isSample: false,
-    });
+    };
+
+    if (isEditing && editingProject) {
+      // Preserve id, isSample, and createdAt — this updates the existing
+      // record in place rather than creating a duplicate.
+      updateProject(editingProject.id, fields);
+      setLocation("/projects");
+    } else {
+      addProject({ ...fields, isSample: false });
+      setLocation("/portfolio-forecast");
+    }
 
     setDraft(emptyDraft);
     setStep(1);
-    setLocation("/portfolio-forecast");
   };
+
+  // Editing a project that no longer exists (e.g. deleted in another tab) —
+  // fall back to a normal create flow rather than showing broken state.
+  if (editId && !editingProject) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center text-gray-500">
+        <p>That project no longer exists in this session.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Create Project</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isEditing ? "Edit Project" : "Create Project"}
+          </h1>
           <div className="text-sm text-gray-500">
             Step {step} of {STEP_LABELS.length}
           </div>
@@ -136,6 +199,7 @@ export default function CreateProject() {
           market={draft.market}
           effort={draft.effort}
           monthlyValue={monthlyValue}
+          excludeProjectId={editingProject?.id}
           onChange={(effort) => setDraft((d) => ({ ...d, effort }))}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
@@ -149,6 +213,7 @@ export default function CreateProject() {
           launchType={draft.launchType}
           launchMonth={draft.launchMonth}
           iterations={draft.iterations}
+          isEditing={isEditing}
           onChange={(updates) => setDraft((d) => ({ ...d, ...updates }))}
           onBack={() => setStep(3)}
           onComplete={handleComplete}

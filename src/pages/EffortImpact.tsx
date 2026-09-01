@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useProjects } from "@/hooks/use-projects";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { deleteProject } from "@/lib/projectStore";
@@ -7,6 +8,7 @@ import { DisplayCurrencyControl } from "@/components/DisplayCurrencyControl";
 export default function EffortImpact() {
   const projects = useProjects();
   const [displayCurrency] = useDisplayCurrency();
+  const [, setLocation] = useLocation();
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -22,7 +24,12 @@ export default function EffortImpact() {
         <DisplayCurrencyControl />
       </div>
 
-      <EffortImpactMatrix projects={projects} displayCurrency={displayCurrency} onDelete={deleteProject} />
+      <EffortImpactMatrix
+        projects={projects}
+        displayCurrency={displayCurrency}
+        onDelete={deleteProject}
+        onEdit={(id) => setLocation(`/edit/${id}`)}
+      />
     </div>
   );
 }

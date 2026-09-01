@@ -14,6 +14,7 @@ function Router() {
       <Navigation />
       <Switch>
         <Route path="/" component={CreateProject} />
+        <Route path="/edit/:id" component={CreateProject} />
         <Route path="/projects" component={Projects} />
         <Route path="/effort-impact" component={EffortImpact} />
         <Route path="/portfolio-forecast" component={PortfolioForecast} />

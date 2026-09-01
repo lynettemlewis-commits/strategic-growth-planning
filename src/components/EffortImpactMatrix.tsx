@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { MARKET_CURRENCY, MARKET_LABEL, convertToDisplayCurrency, formatCurrency, type DisplayCurrency } from "@/lib/currency";
 import type { Project } from "@/lib/types";
 import { ProjectBadge } from "./ProjectBadge";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -39,32 +39,39 @@ interface EffortImpactMatrixProps {
   displayCurrency: DisplayCurrency;
   /** An in-progress project being modeled in the wizard, shown highlighted but not part of the median calc. */
   draftPoint?: { name: string; effort: number; impactValue: number };
+  /** Omit this project from the plotted set — used while editing it, so its stale saved position doesn't appear alongside the live draft overlay. */
+  excludeProjectId?: string;
   onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 export function EffortImpactMatrix({
   projects,
   displayCurrency,
   draftPoint,
+  excludeProjectId,
   onDelete,
+  onEdit,
 }: EffortImpactMatrixProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const points: MatrixPoint[] = useMemo(
     () =>
-      projects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        market: p.market,
-        isSample: p.isSample,
-        effort: p.effort,
-        impactValue: convertToDisplayCurrency(
-          p.monthlyValue,
-          MARKET_CURRENCY[p.market],
-          displayCurrency,
-        ),
-      })),
-    [projects, displayCurrency],
+      projects
+        .filter((p) => p.id !== excludeProjectId)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          market: p.market,
+          isSample: p.isSample,
+          effort: p.effort,
+          impactValue: convertToDisplayCurrency(
+            p.monthlyValue,
+            MARKET_CURRENCY[p.market],
+            displayCurrency,
+          ),
+        })),
+    [projects, excludeProjectId, displayCurrency],
   );
 
   const medianEffort = useMemo(() => median(points.map((p) => p.effort)), [points]);
@@ -132,17 +139,19 @@ export function EffortImpactMatrix({
             style={{ top: `${dividerYPct}%` }}
           />
 
-          {/* Quadrant labels */}
-          <span className="absolute top-2 left-2 text-[11px] font-medium text-green-700">
+          {/* Quadrant labels — capped to under half the box width and
+              allowed to wrap so the two top (and two bottom) labels can
+              never collide into each other, even in a narrow container. */}
+          <span className="absolute top-2 left-2 max-w-[46%] text-[11px] font-medium text-green-700">
             Higher Impact / Lower Effort
           </span>
-          <span className="absolute top-2 right-2 text-[11px] font-medium text-amber-700 text-right">
+          <span className="absolute top-2 right-2 max-w-[46%] text-[11px] font-medium text-amber-700 text-right">
             Higher Impact / Higher Effort
           </span>
-          <span className="absolute bottom-2 left-2 text-[11px] font-medium text-gray-500">
+          <span className="absolute bottom-2 left-2 max-w-[46%] text-[11px] font-medium text-gray-500">
             Lower Impact / Lower Effort
           </span>
-          <span className="absolute bottom-2 right-2 text-[11px] font-medium text-red-600 text-right">
+          <span className="absolute bottom-2 right-2 max-w-[46%] text-[11px] font-medium text-red-600 text-right">
             Lower Impact / Higher Effort
           </span>
 
@@ -191,20 +200,35 @@ export function EffortImpactMatrix({
               {formatCurrency(selected.impactValue, displayCurrency)}/mo
             </div>
           </div>
-          {onDelete && !selected.isSample && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => {
-                onDelete(selected.id);
-                setSelectedId(null);
-              }}
-              data-testid={`button-delete-${selected.id}`}
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </Button>
+          {!selected.isSample && (onEdit || onDelete) && (
+            <div className="flex items-center gap-2">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(selected.id)}
+                  data-testid={`button-edit-${selected.id}`}
+                >
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => {
+                    onDelete(selected.id);
+                    setSelectedId(null);
+                  }}
+                  data-testid={`button-delete-${selected.id}`}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

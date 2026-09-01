@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckCircle2, Save } from "lucide-react";
 import { MONTH_OPTIONS, monthName } from "@/lib/calendar";
 import {
   iterationPercentageTotal,
@@ -19,6 +19,7 @@ interface LaunchStrategyStepProps {
   launchType: LaunchType;
   launchMonth: number;
   iterations: Iteration[];
+  isEditing?: boolean;
   onChange: (updates: Partial<{ launchType: LaunchType; launchMonth: number; iterations: Iteration[] }>) => void;
   onBack: () => void;
   onComplete: () => void;
@@ -30,6 +31,7 @@ export function LaunchStrategyStep({
   launchType,
   launchMonth,
   iterations,
+  isEditing = false,
   onChange,
   onBack,
   onComplete,
@@ -233,8 +235,8 @@ export function LaunchStrategyStep({
           Back
         </Button>
         <Button onClick={handleComplete} className="flex items-center gap-2 bg-green-600 hover:bg-green-700" data-testid="button-complete-project">
-          Complete Project
-          <CheckCircle2 className="w-4 h-4" />
+          {isEditing ? "Save Changes" : "Complete Project"}
+          {isEditing ? <Save className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
         </Button>
       </div>
     </div>
