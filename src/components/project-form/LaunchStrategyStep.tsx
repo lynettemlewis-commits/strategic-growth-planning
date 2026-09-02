@@ -120,7 +120,17 @@ export function LaunchStrategyStep({
           </button>
 
           <button
-            onClick={() => onChange({ launchType: "iterative" })}
+            onClick={() => {
+              // Carry the single-launch month forward onto the final phase —
+              // switching to phases shouldn't silently change when the
+              // project is fully live by, only how it gets there.
+              const lastIndex = iterations.length - 1;
+              const carried =
+                lastIndex >= 0 && iterations[lastIndex].launchMonth !== launchMonth
+                  ? iterations.map((it, i) => (i === lastIndex ? { ...it, launchMonth } : it))
+                  : iterations;
+              onChange({ launchType: "iterative", iterations: carried });
+            }}
             className={`text-left p-4 border-2 rounded-lg transition-all ${
               launchType === "iterative" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-gray-50 hover:border-gray-400"
             }`}
