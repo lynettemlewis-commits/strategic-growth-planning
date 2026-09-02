@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, CheckCircle2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckCircle2, Save, AlertCircle } from "lucide-react";
 import { MONTH_OPTIONS, monthName } from "@/lib/calendar";
 import {
   iterationPercentageTotal,
@@ -55,12 +55,16 @@ export function LaunchStrategyStep({
       ...it,
       valuePercentage: even + (i < remainder ? 1 : 0),
     }));
+    // New phase starts out on the same month as the last existing phase
+    // (rather than a computed later month) — a visible, obviously-a-default
+    // starting point the visitor is expected to move, not a guess at intent.
+    const previousMonth = iterations[iterations.length - 1]?.launchMonth ?? launchMonth;
     onChange({
       iterations: [
         ...rebalanced,
         {
           name: `Phase ${count}`,
-          launchMonth: Math.min(12, launchMonth + count - 1),
+          launchMonth: previousMonth,
           valuePercentage: even + (iterations.length < remainder ? 1 : 0),
         },
       ],
@@ -76,13 +80,23 @@ export function LaunchStrategyStep({
     onChange({ iterations: iterations.map((it, i) => (i === index ? { ...it, ...updates } : it)) });
   };
 
-  const handleComplete = () => {
-    if (launchType === "iterative" && percentageTotal !== 100) {
-      window.alert("Phase percentages must add up to 100% before completing this project.");
-      return;
-    }
-    onComplete();
-  };
+  const percentagesValid = launchType !== "iterative" || percentageTotal === 100;
+
+  // Final phase's month — the comparison scenario for "what if this had
+  // waited for one complete launch instead of rolling out in phases?"
+  const finalPhaseMonth = useMemo(
+    () => Math.max(...iterations.map((it) => it.launchMonth), 1),
+    [iterations],
+  );
+  const singleOnFinalPhaseSeries = useMemo(
+    () => monthlyContributionSeries(value, "single", finalPhaseMonth, []),
+    [value, finalPhaseMonth],
+  );
+  const singleOnFinalPhaseTotal = useMemo(
+    () => totalPlanningPeriodValue(singleOnFinalPhaseSeries),
+    [singleOnFinalPhaseSeries],
+  );
+  const additionalValueFromIteration = iterativeTotal - singleOnFinalPhaseTotal;
 
   return (
     <div className="space-y-6">
@@ -149,7 +163,7 @@ export function LaunchStrategyStep({
 
           <div className="space-y-4">
             {iterations.map((iteration, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Phase Name</label>
                   <Input
@@ -217,7 +231,15 @@ export function LaunchStrategyStep({
             Total allocated: {percentageTotal}%{percentageTotal !== 100 && " — phases must add up to 100%"}
           </div>
 
-          <MonthlyBreakdownTable iterations={iterations} monthlyValue={value} currency={currency} />
+          <IterativeVsSingleComparison
+            iterativeSeries={iterativeSeries}
+            singleOnFinalPhaseSeries={singleOnFinalPhaseSeries}
+            iterativeTotal={iterativeTotal}
+            singleOnFinalPhaseTotal={singleOnFinalPhaseTotal}
+            additionalValue={additionalValueFromIteration}
+            finalPhaseMonth={finalPhaseMonth}
+            currency={currency}
+          />
         </div>
       )}
 
@@ -229,54 +251,114 @@ export function LaunchStrategyStep({
         <div className="text-sm text-gray-600">Total impact across the 12-month planning period</div>
       </div>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-2" data-testid="button-back-step4">
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button onClick={handleComplete} className="flex items-center gap-2 bg-green-600 hover:bg-green-700" data-testid="button-complete-project">
-          {isEditing ? "Save Changes" : "Complete Project"}
-          {isEditing ? <Save className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-        </Button>
+        <div className="flex items-center gap-3">
+          {!percentagesValid && (
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Phase percentages must add up to 100% ({percentageTotal}% currently)
+            </span>
+          )}
+          <Button
+            onClick={onComplete}
+            disabled={!percentagesValid}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            data-testid="button-complete-project"
+          >
+            {isEditing ? "Save Changes" : "Complete Project"}
+            {isEditing ? <Save className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-function MonthlyBreakdownTable({
-  iterations,
-  monthlyValue,
+function IterativeVsSingleComparison({
+  iterativeSeries,
+  singleOnFinalPhaseSeries,
+  iterativeTotal,
+  singleOnFinalPhaseTotal,
+  additionalValue,
+  finalPhaseMonth,
   currency,
 }: {
-  iterations: Iteration[];
-  monthlyValue: number;
+  iterativeSeries: number[];
+  singleOnFinalPhaseSeries: number[];
+  iterativeTotal: number;
+  singleOnFinalPhaseTotal: number;
+  additionalValue: number;
+  finalPhaseMonth: number;
   currency: DisplayCurrency;
 }) {
-  const series = monthlyContributionSeries(monthlyValue, "iterative", 1, iterations);
+  const incremental = iterativeSeries.map((v, i) => v - singleOnFinalPhaseSeries[i]);
+
   return (
-    <div className="mt-6 overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="bg-blue-100">
-            <th className="text-left p-2 font-medium text-blue-900">Month</th>
-            {series.map((_, i) => (
-              <th key={i} className="text-left p-2 font-medium text-blue-900">
-                {monthName(i + 1).slice(0, 3)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="bg-blue-50 font-semibold">
-            <td className="p-2 text-blue-900">Active value</td>
-            {series.map((v, i) => (
-              <td key={i} className="p-2 text-center text-blue-900">
-                {formatCurrency(v, currency)}
+    <div className="mt-6">
+      <h4 className="font-semibold text-gray-900 mb-1">Iterative vs. Single Launch</h4>
+      <p className="text-xs text-gray-500 mb-3">
+        What iterative delivery is worth, compared with waiting and launching everything at once in{" "}
+        {monthName(finalPhaseMonth)} — the date of the final phase.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-blue-100">
+              <th className="text-left p-2 font-medium text-blue-900">Month</th>
+              {iterativeSeries.map((_, i) => (
+                <th key={i} className="text-left p-2 font-medium text-blue-900">
+                  {monthName(i + 1).slice(0, 3)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-blue-50">
+              <td className="p-2 font-medium text-blue-900">Iterative Launch</td>
+              {iterativeSeries.map((v, i) => (
+                <td key={i} className="p-2 text-center text-blue-900">
+                  {formatCurrency(v, currency)}
               </td>
             ))}
-          </tr>
-        </tbody>
-      </table>
+            </tr>
+            <tr>
+              <td className="p-2 font-medium text-gray-700">Single Launch</td>
+              {singleOnFinalPhaseSeries.map((v, i) => (
+                <td key={i} className="p-2 text-center text-gray-700">
+                  {formatCurrency(v, currency)}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-t border-blue-200">
+              <td className="p-2 font-medium text-green-700">Incremental Value of Iteration</td>
+              {incremental.map((v, i) => (
+                <td key={i} className="p-2 text-center text-green-700">
+                  {v === 0 ? "—" : formatCurrency(v, currency, { showSign: true })}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="text-xs text-blue-700 uppercase tracking-wide">FY value — Iterative Launch</div>
+          <div className="text-lg font-bold text-blue-900">{formatCurrency(iterativeTotal, currency)}</div>
+        </div>
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="text-xs text-gray-600 uppercase tracking-wide">FY value — Single Launch</div>
+          <div className="text-lg font-bold text-gray-800">{formatCurrency(singleOnFinalPhaseTotal, currency)}</div>
+        </div>
+        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="text-xs text-green-700 uppercase tracking-wide">Additional FY value from iteration</div>
+          <div className="text-lg font-bold text-green-800">{formatCurrency(additionalValue, currency, { showSign: true })}</div>
+        </div>
+      </div>
     </div>
   );
 }

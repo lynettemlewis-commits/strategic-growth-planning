@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { ProjectDetailsStep } from "@/components/project-form/ProjectDetailsStep";
 import { BusinessImpactStep } from "@/components/project-form/BusinessImpactStep";
-import { EffortStep } from "@/components/project-form/EffortStep";
+import { PrioritizationPreviewStep } from "@/components/project-form/PrioritizationPreviewStep";
 import { LaunchStrategyStep } from "@/components/project-form/LaunchStrategyStep";
 import { calculateGrowthImpact } from "@/lib/growthModel";
 import { MARKET_BASELINES } from "@/lib/marketBaselines";
@@ -11,7 +11,7 @@ import { addProject, updateProject } from "@/lib/projectStore";
 import { useProjects } from "@/hooks/use-projects";
 import type { FunnelStage, Iteration, LaunchType, Market, MetricAdjustments, Project } from "@/lib/types";
 
-const STEP_LABELS = ["Project Details", "Business Impact", "Estimated Effort", "Launch Strategy"];
+const STEP_LABELS = ["Project Details", "Estimate Impact", "Prioritization", "Launch Strategy"];
 
 interface DraftProject {
   name: string;
@@ -177,6 +177,7 @@ export default function CreateProject() {
           description={draft.description}
           funnel={draft.funnel}
           market={draft.market}
+          effort={draft.effort}
           onChange={(updates) => setDraft((d) => ({ ...d, ...updates }))}
           onNext={() => setStep(2)}
         />
@@ -194,13 +195,12 @@ export default function CreateProject() {
       )}
 
       {step === 3 && (
-        <EffortStep
+        <PrioritizationPreviewStep
           name={draft.name}
           market={draft.market}
           effort={draft.effort}
           monthlyValue={monthlyValue}
           excludeProjectId={editingProject?.id}
-          onChange={(effort) => setDraft((d) => ({ ...d, effort }))}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
         />

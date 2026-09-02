@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { InputWithControls } from "@/components/ui/input-with-controls";
-import { ArrowLeft, ArrowRight, TrendingUp, DollarSign } from "lucide-react";
+import { ArrowLeft, ArrowRight, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
 import { calculateGrowthImpact, estimatedIncrementalBookings } from "@/lib/growthModel";
 import { MARKET_BASELINES } from "@/lib/marketBaselines";
 import { FUNNEL_STAGE_RECOMMENDED_METRIC } from "@/lib/funnelStages";
@@ -85,6 +85,7 @@ export function BusinessImpactStep({
 
   const result = useMemo(() => calculateGrowthImpact(baseline, adjustments), [baseline, adjustments]);
   const bookings = estimatedIncrementalBookings(result.difference.revenue, baseline.avgBookingValue);
+  const hasAnyAdjustment = Object.values(adjustments).some((v) => v !== 0);
 
   const handleFieldChange = (key: keyof MetricAdjustments, value: number) => {
     onChange({ ...adjustments, [key]: value });
@@ -102,16 +103,17 @@ export function BusinessImpactStep({
   return (
     <div className="space-y-6">
       <div className="border-l-4 border-green-500 pl-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Model Business Impact</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Estimate Impact</h2>
         <p className="text-gray-600">
-          Adjust any metrics this project affects. The highlighted field is recommended based on the
-          funnel stage you chose — it's a starting point, not a restriction.
+          Estimate how this project changes the underlying business inputs — and therefore the
+          business outcome. The highlighted field is recommended based on the funnel stage you chose,
+          but it's a starting point, not a restriction.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-xl font-semibold mb-4 text-gray-900">Adjustment Inputs</h3>
+          <h3 className="text-xl font-semibold mb-4 text-gray-900">Estimate Impact</h3>
           <div className="space-y-6">
             {METRIC_FIELDS.map((field) => (
               <div
@@ -201,15 +203,28 @@ export function BusinessImpactStep({
         </div>
       </div>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-2" data-testid="button-back-step2">
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button onClick={onNext} className="flex items-center gap-2" data-testid="button-next-step2">
-          Next: Estimated Effort
-          <ArrowRight className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-3">
+          {!hasAnyAdjustment && (
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Adjust at least one input to estimate impact
+            </span>
+          )}
+          <Button
+            onClick={onNext}
+            disabled={!hasAnyAdjustment}
+            className="flex items-center gap-2"
+            data-testid="button-next-step2"
+          >
+            Next: Prioritization
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

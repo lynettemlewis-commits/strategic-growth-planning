@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { EffortImpactMatrix } from "@/components/EffortImpactMatrix";
 import { convertToDisplayCurrency, MARKET_CURRENCY } from "@/lib/currency";
@@ -7,28 +6,32 @@ import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useProjects } from "@/hooks/use-projects";
 import type { Market } from "@/lib/types";
 
-interface EffortStepProps {
+interface PrioritizationPreviewStepProps {
   name: string;
   market: Market;
   effort: number;
   monthlyValue: number; // native currency, from the Business Impact step
   /** When editing an existing project, its id — excluded from the preview matrix so its saved position doesn't duplicate the live draft. */
   excludeProjectId?: string;
-  onChange: (effort: number) => void;
   onBack: () => void;
   onNext: () => void;
 }
 
-export function EffortStep({
+/**
+ * Read-only prioritization preview. Estimated Effort is captured back on
+ * the Project Details step — this step exists only because the matrix
+ * needs the project's financial impact (from Business Impact, the prior
+ * step) to plot a point, so it can't come any earlier in the wizard.
+ */
+export function PrioritizationPreviewStep({
   name,
   market,
   effort,
   monthlyValue,
   excludeProjectId,
-  onChange,
   onBack,
   onNext,
-}: EffortStepProps) {
+}: PrioritizationPreviewStepProps) {
   const projects = useProjects();
   const [displayCurrency] = useDisplayCurrency();
 
@@ -41,29 +44,11 @@ export function EffortStep({
   return (
     <div className="space-y-6">
       <div className="border-l-4 border-orange-500 pl-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Estimated Effort</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Prioritization Preview</h2>
         <p className="text-gray-600">
-          Rate the effort to build and ship this project, then see where it lands against the rest of
-          the portfolio.
+          Here's where this project lands against the rest of the portfolio, at Effort {effort}/10.
+          Go back to Project Details if you want to change the effort rating.
         </p>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <label className="block text-lg font-semibold text-gray-900 mb-1">Estimated Effort: {effort}/10</label>
-        <p className="text-sm text-gray-600 mb-4">1 = Low Effort, 10 = High Effort</p>
-        <Slider
-          value={[effort]}
-          onValueChange={(value) => onChange(Math.round(value[0]))}
-          min={1}
-          max={10}
-          step={1}
-          data-testid="slider-effort"
-        />
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-          {Array.from({ length: 10 }, (_, i) => (
-            <span key={i}>{i + 1}</span>
-          ))}
-        </div>
       </div>
 
       <EffortImpactMatrix
