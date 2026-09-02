@@ -26,7 +26,7 @@ export type LaunchType = (typeof LAUNCH_TYPES)[number];
 /** One phase of an iterative/phased launch. */
 export const iterationSchema = z.object({
   name: z.string(),
-  /** 1-12, position within the July–June planning calendar. */
+  /** 1-12, position within the January–December planning calendar. */
   launchMonth: z.number().int().min(1).max(12),
   /** Percentage (0-100) of the project's full value this phase contributes. */
   valuePercentage: z.number().min(0).max(100),
@@ -53,7 +53,7 @@ export const projectSchema = z.object({
   effort: z.number().int().min(1).max(10),
   adjustments: metricAdjustmentsSchema,
   launchType: z.enum(LAUNCH_TYPES),
-  /** For a single launch: 1-12 within the July–June planning calendar. */
+  /** For a single launch: 1-12 within the January–December planning calendar. */
   launchMonth: z.number().int().min(1).max(12),
   iterations: z.array(iterationSchema).optional().default([]),
   /** Native-currency monthly revenue impact once fully ramped (from the growth model). */

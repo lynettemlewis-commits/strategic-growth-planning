@@ -1,40 +1,41 @@
 /**
  * Centralized planning calendar.
  *
- * The original tool ran on a July–June fiscal year. The public version keeps
- * that planning cycle (it's a real, if unusual, artifact of the original
- * global marketplace) but presents it year-neutrally — no calendar year is
- * shown or configured anywhere in the product. Months are addressed purely
- * by their 1-12 position in the planning period ("planning month"), where
- * month 1 = July and month 12 = June.
+ * A plain calendar-year planning period (January–December). The original
+ * internal tool ran on a July–June fiscal year; the public version uses a
+ * calendar year instead so the tool is legible without any "FY" context —
+ * the fiscal-year origin is a README footnote, not something visitors need
+ * to decode from an unexplained month order.
  *
- * This is the single source of truth for that mapping. Every other module
- * (growth model, launch timing, portfolio forecast, UI dropdowns) imports
- * from here rather than hardcoding month names/order.
+ * This is the single source of truth for month order/labels/quarters.
+ * Every other module (growth model, launch timing, portfolio forecast, UI
+ * dropdowns) imports from here rather than hardcoding month names/order —
+ * this file is the only thing that would need to change to shift the
+ * planning period again.
  */
 
 export interface PlanningMonth {
-  /** 1-12 position in the planning year (1 = July). */
+  /** 1-12 position in the planning year (1 = January). */
   index: number;
-  /** Short display label, e.g. "July". */
+  /** Short display label, e.g. "January". */
   name: string;
   /** Which planning quarter this month falls in (1-4). */
   quarter: 1 | 2 | 3 | 4;
 }
 
 export const PLANNING_MONTHS: PlanningMonth[] = [
-  { index: 1, name: "July", quarter: 1 },
-  { index: 2, name: "August", quarter: 1 },
-  { index: 3, name: "September", quarter: 1 },
-  { index: 4, name: "October", quarter: 2 },
-  { index: 5, name: "November", quarter: 2 },
-  { index: 6, name: "December", quarter: 2 },
-  { index: 7, name: "January", quarter: 3 },
-  { index: 8, name: "February", quarter: 3 },
-  { index: 9, name: "March", quarter: 3 },
-  { index: 10, name: "April", quarter: 4 },
-  { index: 11, name: "May", quarter: 4 },
-  { index: 12, name: "June", quarter: 4 },
+  { index: 1, name: "January", quarter: 1 },
+  { index: 2, name: "February", quarter: 1 },
+  { index: 3, name: "March", quarter: 1 },
+  { index: 4, name: "April", quarter: 2 },
+  { index: 5, name: "May", quarter: 2 },
+  { index: 6, name: "June", quarter: 2 },
+  { index: 7, name: "July", quarter: 3 },
+  { index: 8, name: "August", quarter: 3 },
+  { index: 9, name: "September", quarter: 3 },
+  { index: 10, name: "October", quarter: 4 },
+  { index: 11, name: "November", quarter: 4 },
+  { index: 12, name: "December", quarter: 4 },
 ];
 
 export const PLANNING_PERIOD_LENGTH = PLANNING_MONTHS.length;
