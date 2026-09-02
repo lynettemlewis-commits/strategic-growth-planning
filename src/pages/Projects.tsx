@@ -1,25 +1,48 @@
+import { useState } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { deleteProject } from "@/lib/projectStore";
 import { ProjectBadge } from "@/components/ProjectBadge";
 import { FUNNEL_STAGE_LABEL } from "@/lib/funnelStages";
 import { MARKET_LABEL, MARKET_CURRENCY, formatCurrency } from "@/lib/currency";
 import { monthName } from "@/lib/calendar";
+import { REGION_OPTIONS, projectMatchesRegion, type Region } from "@/lib/region";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Projects() {
   const projects = useProjects();
-  const sorted = [...projects].sort((a, b) => b.monthlyValue - a.monthlyValue);
+  const [region, setRegion] = useState<Region>("all");
+
+  const filtered = projects.filter((p) => projectMatchesRegion(p, region));
+  const sorted = [...filtered].sort((a, b) => b.monthlyValue - a.monthlyValue);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Projects</h1>
-        <p className="text-gray-600">
-          Every project in this session — the seeded sample portfolio plus anything you've created.
-          This data lives only in your browser for this session.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Projects</h1>
+          <p className="text-gray-600">
+            Every project in this session — the seeded sample portfolio plus anything you've created.
+            This data lives only in your browser for this session.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">Region</span>
+          <Select value={region} onValueChange={(v) => setRegion(v as Region)}>
+            <SelectTrigger className="w-40" data-testid="select-region-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REGION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -83,6 +106,13 @@ export default function Projects() {
                   </td>
                 </tr>
               ))}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-gray-400">
+                    No projects in this region yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
