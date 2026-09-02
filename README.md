@@ -29,7 +29,7 @@ Once my team was aligned on our quarterly plan, I could take our priorities dire
 
 The framework became standard practice in our quarterly planning sessions, giving everyone on my team an opportunity to propose ideas, evaluate them together, and align on our priorities.
 
-More importantly, it **elevated how people across the company thought about the business**. Everyone became better equipped to translate ideas into business impact and revenue, creating a shared language across teams and leadership.
+More importantly, it elevated how people across the company thought about the business. Everyone became better equipped to translate ideas into business impact and revenue, creating a shared language across teams and leadership.
 
 Projects developed through the framework went on to receive leadership approval, launch, and contribute to downstream revenue growth.
 
