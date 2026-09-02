@@ -4,6 +4,8 @@
 
 At Spacer, I built a strategic planning tool designed to give everyone, from individual contributors to leadership, a common way to assess ideas based on their potential impact on the business.
 
+**[View the live tool →](https://strategic-growth-planning.vercel.app/)**
+
 ## Objective
 
 The people closest to customers, the product, and day-to-day operations often see problems and opportunities that aren't as visible to leadership. At the same time, company priorities can feel disconnected from the day-to-day work when the business rationale behind them isn't clear.
