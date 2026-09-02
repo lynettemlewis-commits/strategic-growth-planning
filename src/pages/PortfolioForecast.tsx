@@ -173,8 +173,7 @@ export default function PortfolioForecast() {
         {impactView === "project" ? (
           <ByProjectWaterfall
             projectSeries={projectSeries}
-            baselineForecast={baselineForecast}
-            resultingForecast={resultingForecast}
+            portfolioImpact={portfolioImpact}
             displayCurrency={displayCurrency}
           />
         ) : (
@@ -199,28 +198,30 @@ export default function PortfolioForecast() {
 
 function ByProjectWaterfall({
   projectSeries,
-  baselineForecast,
-  resultingForecast,
+  portfolioImpact,
   displayCurrency,
 }: {
   projectSeries: { project: Project; series: number[] }[];
-  baselineForecast: number;
-  resultingForecast: number;
+  portfolioImpact: number;
   displayCurrency: DisplayCurrency;
 }) {
   const sorted = [...projectSeries].sort(
     (a, b) => b.series.reduce((x, y) => x + y, 0) - a.series.reduce((x, y) => x + y, 0),
   );
 
-  const rows: { name: string; base: number; delta: number; kind: "baseline" | "project" | "resulting" }[] = [];
-  rows.push({ name: "Baseline Forecast", base: 0, delta: baselineForecast, kind: "baseline" });
-  let running = baselineForecast;
+  // Pure waterfall of the portfolio's own contribution — starts at zero
+  // (not the company baseline) and ends on the Portfolio Impact total, so
+  // this chart answers one question only: which projects built that total,
+  // not how it compares to the underlying business trajectory (that's
+  // Business Impact, below).
+  const rows: { name: string; base: number; delta: number; kind: "project" | "total" }[] = [];
+  let running = 0;
   for (const { project, series } of sorted) {
     const total = series.reduce((a, b) => a + b, 0);
     rows.push({ name: project.name, base: running, delta: total, kind: "project" });
     running += total;
   }
-  rows.push({ name: "Resulting Forecast", base: 0, delta: resultingForecast, kind: "resulting" });
+  rows.push({ name: "Portfolio Impact", base: 0, delta: portfolioImpact, kind: "total" });
 
   const data = rows.map((r) => ({ name: r.name, base: r.base, delta: r.delta, kind: r.kind }));
 
@@ -243,10 +244,7 @@ function ByProjectWaterfall({
             <Bar dataKey="base" stackId="waterfall" fill="transparent" isAnimationActive={false} />
             <Bar dataKey="delta" stackId="waterfall" isAnimationActive={false} radius={[3, 3, 0, 0]}>
               {data.map((row, i) => (
-                <Cell
-                  key={i}
-                  fill={row.kind === "baseline" ? "#9ca3af" : row.kind === "resulting" ? "#4f46e5" : "#3b82f6"}
-                />
+                <Cell key={i} fill={row.kind === "total" ? "#4f46e5" : "#3b82f6"} />
               ))}
             </Bar>
           </BarChart>
